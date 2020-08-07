@@ -64,21 +64,22 @@ function parseNodes(nodes) {
       obj.id = current.childNodes[1].innerHTML.trim();
       obj.name = current.childNodes[2].rawText.trim();
 
+      const regex = /,|\./;
       current = nodes[i + 1];
       if (current.childNodes[3].childNodes[0]) {
-        obj.workDays = current.childNodes[3].childNodes[0].innerHTML.split(",").map((x) => x.trim());
+        obj.workDays = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
         parseLast(obj.workDays);
       }
 
       current = nodes[i + 2];
       if (current.childNodes[3].childNodes[0]) {
-        obj.saturday = current.childNodes[3].childNodes[0].innerHTML.split(",").map((x) => x.trim());
+        obj.saturday = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
         parseLast(obj.saturday);
       }
 
       current = nodes[i + 3];
       if (current.childNodes[3].childNodes[0]) {
-        obj.sunday = current.childNodes[3].childNodes[0].innerHTML.split(",").map((x) => x.trim());
+        obj.sunday = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
         parseLast(obj.sunday);
       }
     }
@@ -90,21 +91,41 @@ function parseNodes(nodes) {
 function parseLast(arr) {
   let last = arr.pop();
   if (last.length > 15) {
-    let time = last.substr(0, 6);
+    let time = last.substr(0, 6).trim();
 
-    let ind = 13;
+    //let ind = 11;
 
     if (time[time.length - 1] != "*") {
       time = time.substr(0, time.length - 1);
-      ind = 12;
+      //ind--;
     }
 
-    arr.push(time);
-    let description = last.substr(ind, last.length - 12);
+    if (time != "" && isNumeric(time[0])) {
+      arr.push(time);
+    }
 
-    description = description[0].toUpperCase() + description.slice(1);
-    arr.push(description.trim());
+    let description = last.split("\n")[1].trim();
+
+    description = (description[0].toUpperCase() + description.slice(1)).trim();
+    if (description != "") {
+      arr.push(description);
+    }
+    //arr.push(last);
   } else {
-    arr.push(last);
+    if (last != "") {
+      arr.push(last);
+    }
+
+    for (let i = 0; i < arr.length; i++) {
+      let x = arr[i].split(" ");
+      if (x.length > 1) {
+        arr[i] = x[0];
+        arr.splice(i,0,x[1]);
+      }
+    }
   }
+}
+
+function isNumeric(str) {
+  return /^\d+$/.test(str);
 }
