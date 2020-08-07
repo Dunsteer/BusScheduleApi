@@ -118,9 +118,9 @@ function parseLast(arr) {
 
     for (let i = 0; i < arr.length; i++) {
       let x = arr[i].split(" ");
-      if (x.length > 1) {
+      if (x.length > 1 && x[0].length==5) {
         arr[i] = x[0];
-        arr.splice(i,0,x[1]);
+        arr.splice(i+1,0,x[1]);
       }
     }
   }
