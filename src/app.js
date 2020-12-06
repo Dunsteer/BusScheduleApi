@@ -108,5 +108,5 @@ function extractFoosnote(inputStr) {
 }
 
 function parseArray(inputStr) {
-  return [...stringToArrayOfTime(inputStr), ...extractFoosnote(inputStr)].flat();
+  return [...stringToArrayOfTime(inputStr), ...extractFoosnote(convert(inputStr))].flat();
 }
