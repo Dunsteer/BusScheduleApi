@@ -2,6 +2,7 @@ const fetch = require("node-fetch");
 const HTMLParser = require("node-html-parser");
 const express = require("express");
 const NodeCache = require("node-cache");
+const convert = require("cyrillic-to-latin");
 
 const cache = new NodeCache();
 const app = express();
@@ -50,7 +51,9 @@ app.get("/to", function (req, res) {
   }
 });
 
-app.listen(3000);
+app.listen(3000, () => {
+  console.log(`Server started on port 3000.`);
+});
 
 function parseNodes(nodes) {
   const res = [];
@@ -61,71 +64,49 @@ function parseNodes(nodes) {
       const obj = {};
       res.push(obj);
 
-      obj.id = current.childNodes[1].innerHTML.trim();
-      obj.name = current.childNodes[2].rawText.trim();
+      obj.id = convert(current.childNodes[1].innerHTML.trim());
+      obj.name = convert(current.childNodes[2].rawText.trim());
 
       const regex = /,|\./;
       current = nodes[i + 1];
       if (current.childNodes[3].childNodes[0]) {
-        obj.workDays = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
-        parseLast(obj.workDays);
+        obj.workDays = parseArray(current.childNodes[3].childNodes[0].innerHTML);
+        //parseLast(obj.workDays);
       }
 
       current = nodes[i + 2];
       if (current.childNodes[3].childNodes[0]) {
-        obj.saturday = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
-        parseLast(obj.saturday);
+        obj.saturday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
+        //parseLast(obj.saturday);
       }
 
       current = nodes[i + 3];
       if (current.childNodes[3].childNodes[0]) {
-        obj.sunday = current.childNodes[3].childNodes[0].innerHTML.split(regex).map((x) => x.trim());
-        parseLast(obj.sunday);
+        obj.sunday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
+        //parseLast(obj.sunday);
       }
     }
   }
-  //console.log(res);
+
   return res;
 }
 
-function parseLast(arr) {
-  let last = arr.pop();
-  if (last.length > 15) {
-    let time = last.substr(0, 6).trim();
+/**
+ * @param {string} inputStr
+ */
+function stringToArrayOfTime(inputStr) {
+  const timeReg = /([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\*)?/g;
 
-    //let ind = 11;
+  const res = inputStr.match(timeReg);
 
-    if (time[time.length - 1] != "*") {
-      time = time.substr(0, time.length - 1);
-      //ind--;
-    }
-
-    if (time != "" && isNumeric(time[0])) {
-      arr.push(time);
-    }
-
-    let description = last.split("\n")[1].trim();
-
-    description = (description[0].toUpperCase() + description.slice(1)).trim();
-    if (description != "") {
-      arr.push(description);
-    }
-    //arr.push(last);
-  } else {
-    if (last != "") {
-      arr.push(last);
-    }
-
-    for (let i = 0; i < arr.length; i++) {
-      let x = arr[i].split(" ");
-      if (x.length > 1 && x[0].length==5) {
-        arr[i] = x[0];
-        arr.splice(i+1,0,x[1]);
-      }
-    }
-  }
+  return res || [];
 }
 
-function isNumeric(str) {
-  return /^\d+$/.test(str);
+function extractFoosnote(inputStr) {
+  const res = inputStr.match(/(\*.*$)/g);
+  return res || [];
+}
+
+function parseArray(inputStr) {
+  return [...stringToArrayOfTime(inputStr), ...extractFoosnote(inputStr)].flat();
 }
