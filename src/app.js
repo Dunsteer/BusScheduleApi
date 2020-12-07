@@ -51,6 +51,26 @@ app.get("/to", function (req, res) {
   }
 });
 
+app.get("/test", (req, res) => {
+  fetch("http://www.jgpnis.com/red-voznje/")
+    .then((x) => x.text())
+    .then((x) => HTMLParser.parse(x))
+    .then((x) => {
+      const nodes = [...x.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML);
+
+      var json = parseLine1Workday(nodes);
+      const obj = {
+        id: null,
+        name: null,
+        workDays: json,
+      };
+
+      //cache.set("to", json, 3600);
+
+      return res.json(obj);
+    });
+});
+
 app.listen(3000, () => {
   console.log(`Server started on port 3000.`);
 });
@@ -109,4 +129,26 @@ function extractFoosnote(inputStr) {
 
 function parseArray(inputStr) {
   return [...stringToArrayOfTime(inputStr), ...extractFoosnote(convert(inputStr))].flat();
+}
+
+function parseLine1Workday(nodes) {
+  const raspored = Array.from(nodes[1].childNodes[1].childNodes);
+
+  const res = raspored
+    .filter((x) => x.innerHTML)
+    .map((x) => {
+      const firstHalf = x.childNodes[1].innerHTML;
+      if (isNumeric(firstHalf)) {
+        const nodes = x.childNodes[3].innerHTML.match(/([0-9]+)(\*)*/g);
+        if (!nodes) return [];
+        const arr = Array.from(nodes);
+        return arr.map((y) => `${firstHalf}:${y}`);
+      }
+    });
+
+  return res.flat().filter((x) => x);
+}
+
+function isNumeric(str) {
+  return /^\d+$/.test(str);
 }
