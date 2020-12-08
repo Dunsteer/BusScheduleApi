@@ -3,6 +3,7 @@ const HTMLParser = require("node-html-parser");
 const express = require("express");
 const NodeCache = require("node-cache");
 const convert = require("cyrillic-to-latin");
+const fs = require("fs");
 
 const cache = new NodeCache();
 const app = express();
@@ -57,7 +58,9 @@ app.get("/test", (req, res) => {
     .then((x) => HTMLParser.parse(x))
     .then((x) => {
       //const nodes = [...x.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML);
-
+      fs.writeFileSync("./asd.html", x);
+      const header = x.querySelector("#myModal-jje");
+      console.log(header);
       const json = parseLine1(x);
       const obj = {
         id: null,
@@ -85,7 +88,7 @@ function parseNodes(nodes) {
       res.push(obj);
 
       obj.id = convert(current.childNodes[1].innerHTML.trim());
-      obj.name = convert(current.childNodes[2].rawText.trim());
+      obj.name = convert(current.childNodes[2].rawText.trim().replace(",", ""));
 
       const regex = /,|\./;
       current = nodes[i + 1];
@@ -132,7 +135,6 @@ function parseArray(inputStr) {
 }
 
 function parseLine1(nodes) {
-  console.log(nodes);
   const raspored1 = Array.from([...nodes.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
   const raspored2 = Array.from([...nodes.querySelector("#subota2bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
   const raspored3 = Array.from([...nodes.querySelector("#nedelja3bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
