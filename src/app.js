@@ -56,13 +56,13 @@ app.get("/test", (req, res) => {
     .then((x) => x.text())
     .then((x) => HTMLParser.parse(x))
     .then((x) => {
-      const nodes = [...x.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML);
+      //const nodes = [...x.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML);
 
-      var json = parseLine1Workday(nodes);
+      const json = parseLine1(x);
       const obj = {
         id: null,
         name: null,
-        workDays: json,
+        ...json,
       };
 
       //cache.set("to", json, 3600);
@@ -131,10 +131,21 @@ function parseArray(inputStr) {
   return [...stringToArrayOfTime(inputStr), ...extractFoosnote(convert(inputStr))].flat();
 }
 
-function parseLine1Workday(nodes) {
-  const raspored = Array.from(nodes[1].childNodes[1].childNodes);
+function parseLine1(nodes) {
+  console.log(nodes);
+  const raspored1 = Array.from([...nodes.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
+  const raspored2 = Array.from([...nodes.querySelector("#subota2bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
+  const raspored3 = Array.from([...nodes.querySelector("#nedelja3bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
 
-  const res = raspored
+  const workDays = parseGenericLine(raspored1);
+  const saturday = parseGenericLine(raspored2);
+  const sunday = parseGenericLine(raspored3);
+
+  return { workDays, saturday, sunday };
+}
+
+function parseGenericLine(node) {
+  return node
     .filter((x) => x.innerHTML)
     .map((x) => {
       const firstHalf = x.childNodes[1].innerHTML;
@@ -144,9 +155,9 @@ function parseLine1Workday(nodes) {
         const arr = Array.from(nodes);
         return arr.map((y) => `${firstHalf}:${y}`);
       }
-    });
-
-  return res.flat().filter((x) => x);
+    })
+    .flat()
+    .filter((x) => x);
 }
 
 function isNumeric(str) {
