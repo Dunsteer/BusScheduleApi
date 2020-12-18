@@ -52,8 +52,8 @@ app.get("/", function (req, res) {
   res.send("Hello World");
 });
 
-app.get("/from", function (req, res) {
-  let json = cache.get("from");
+app.get("/old-from", function (req, res) {
+  let json = cache.get("old-from");
   if (json == undefined) {
     fetch("http://www.jgpnis.com/red-voznje/")
       .then((x) => x.text())
@@ -63,7 +63,7 @@ app.get("/from", function (req, res) {
 
         var json = parseNodes(nodes);
 
-        cache.set("from", json, 3600);
+        cache.set("old-from", json, 3600);
 
         return res.json(json);
       });
@@ -72,8 +72,8 @@ app.get("/from", function (req, res) {
   }
 });
 
-app.get("/to", function (req, res) {
-  let json = cache.get("to");
+app.get("/old-to", function (req, res) {
+  let json = cache.get("old-to");
   if (json == undefined) {
     fetch("http://www.jgpnis.com/red-voznje/")
       .then((x) => x.text())
@@ -83,7 +83,7 @@ app.get("/to", function (req, res) {
 
         var json = parseNodes(nodes);
 
-        cache.set("to", json, 3600);
+        cache.set("old-to", json, 3600);
 
         return res.json(json);
       });
@@ -92,8 +92,8 @@ app.get("/to", function (req, res) {
   }
 });
 
-app.get("/test-to", async (req, res) => {
-  let all = cache.get("test-to");
+app.get("/to", async (req, res) => {
+  let all = cache.get("to");
   if (!all) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -114,14 +114,14 @@ app.get("/test-to", async (req, res) => {
 
     all = [...json, ...prigradski].filter((x) => x);
 
-    cache.set("test-to", all, 3600);
+    cache.set("to", all, 3600);
   }
 
   return res.json(all);
 });
 
-app.get("/test-from", async (req, res) => {
-  let all = cache.get("test-from");
+app.get("/from", async (req, res) => {
+  let all = cache.get("from");
   if (!all) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -142,7 +142,7 @@ app.get("/test-from", async (req, res) => {
 
     all = [...json, ...prigradski].filter((x) => x);
 
-    cache.set("test-from", all, 3600);
+    cache.set("from", all, 3600);
   }
   return res.json(all);
 });
