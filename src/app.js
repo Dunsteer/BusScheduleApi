@@ -95,7 +95,7 @@ app.get("/old-to", function (req, res) {
 app.get("/to", async (req, res) => {
   let all = cache.get("to");
   if (!all) {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
     const page = await browser.newPage();
     await page.goto("http://www.jgpnis.com/red-voznje/");
 
@@ -123,7 +123,7 @@ app.get("/to", async (req, res) => {
 app.get("/from", async (req, res) => {
   let all = cache.get("from");
   if (!all) {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
     const page = await browser.newPage();
     await page.goto("http://www.jgpnis.com/red-voznje/");
 
