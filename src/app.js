@@ -23,7 +23,7 @@ const modals = {
   "myModal-jz": 3,
   "myModal-jzz": 3,
   "myModal-pp": 4,
-  "myModal-pp": 4,
+  "myModal-ppp": 4,
   "myModal-kuj": 5,
   "myModal-kje": 5,
   "myModal-kok": 6,
@@ -215,33 +215,21 @@ function parseArray(inputStr) {
  */
 function parseGenericLine(content, id, parent) {
   content = content.querySelector(`#${parent}`);
-  const header = content.querySelector(".modal-title").innerHTML;
+  const header = content.querySelector(".modal-title");
 
-  const name = header.match(/([Љ-џ]+)/g).reduce((acc, x) => {
-    if (x.length > 2) {
-      return (acc = `${acc} ${x}`);
-    } else {
-      return acc.trim();
-    }
-  }, "");
+  const names = header.querySelectorAll("font");
+
+  const name = `${names[0].innerHTML} - ${names[1].innerHTML}`;
 
   const obj = {
     id,
     name,
   };
 
-  //const raspored1 = Array.from([...content.querySelector("#radnidan1aa").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
-  //const raspored2 = Array.from([...content.querySelector("#subota2bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
-  //const raspored3 = Array.from([...content.querySelector("#nedelja3bb").childNodes].filter((x) => x.innerHTML)[1].childNodes[1].childNodes);
-
   const days = Array.from([...content.querySelectorAll(".tab-pane")].filter((x) => x.innerHTML));
   days.forEach((day, i) => {
     obj[mapping[i]] = parseGenericLineDay(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
   });
-
-  // const workDays = parseGenericLine(raspored1);
-  // const saturday = parseGenericLine(raspored2);
-  // const sunday = parseGenericLine(raspored3);
 
   return obj;
 }
