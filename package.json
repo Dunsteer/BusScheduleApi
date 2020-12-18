@@ -19,7 +19,8 @@
     "node-cache": "^5.1.2",
     "node-fetch": "^2.6.0",
     "node-html-parser": "^1.2.20",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "puppeteer": "^5.5.0"
   },
   "devDependencies": {
     "jsdoc": "^3.6.6"
