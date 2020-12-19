@@ -5,9 +5,13 @@ const NodeCache = require("node-cache");
 const convert = require("cyrillic-to-latin");
 const fs = require("fs");
 const puppeteer = require("puppeteer");
+const compression = require("compression");
+const { addListener } = require("process");
 
 const cache = new NodeCache();
 const app = express();
+
+app.use(compression());
 
 const mapping = {
   0: "workDays",
@@ -198,13 +202,13 @@ function stringToArrayOfTime(inputStr) {
   return res || [];
 }
 
-function extractFoosnote(inputStr) {
+function extractFootnote(inputStr) {
   const res = inputStr.match(/(\*.*$)/g);
   return res || [];
 }
 
 function parseArray(inputStr) {
-  return [...stringToArrayOfTime(inputStr), ...extractFoosnote(convert(inputStr))].flat();
+  return [...stringToArrayOfTime(inputStr), ...extractFootnote(convert(inputStr))].flat();
 }
 
 /**
@@ -220,33 +224,78 @@ function parseGenericLine(content, id, parent) {
   const names = header.querySelectorAll("font");
 
   const name = `${names[0].innerHTML} - ${names[1].innerHTML}`;
+  //([\*|_]+[Љ-џ\s(),]+|([Љ-џ]+[\s]+))
 
   const obj = {
     id,
     name,
   };
 
-  const days = Array.from([...content.querySelectorAll(".tab-pane")].filter((x) => x.innerHTML));
+  const days = Array.from([...content.querySelectorAll(".tab-pane")]);
+
   days.forEach((day, i) => {
-    obj[mapping[i]] = parseGenericLineDay(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
+    let parsedFootnotes = parseGenericLineFootnote(day);
+    let parsedTime = parseGenericLineTime(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
+
+    obj[mapping[i]] = parsedTime.concat(parsedFootnotes).flat();
   });
 
   return obj;
 }
 
-function parseGenericLineDay(node) {
+/**
+ *
+ * @param {HTMLElement[]} node
+ */
+function parseGenericLineTime(node) {
   return node
     .map((x) => {
       const firstHalf = x.childNodes[1].innerHTML.trim();
+
       if (isNumeric(firstHalf)) {
-        const nodes = x.childNodes[3].innerHTML.match(/([0-9]+)(\*)*/g);
-        if (!nodes) return [];
-        const arr = Array.from(nodes);
-        return arr.map((y) => `${firstHalf}:${y}`);
+        const extractedNumbers = x.childNodes[3].innerHTML.match(/[0-9*,]+/g);
+        if (extractedNumbers) {
+          const nodes = extractedNumbers.join("").match(/([0-9]+)(\*)*/g);
+
+          const arr = Array.from(nodes);
+          return arr.map((y) => `${firstHalf}:${y}`);
+        } else {
+          return [];
+        }
       }
     })
     .flat()
     .filter((x) => x);
+}
+
+function parseGenericLineFootnote(day) {
+  const footnotes = Array.from([...day.querySelectorAll("p")]);
+
+  return footnotes.map((x) => {
+    let matches = x.innerHTML.match(/([\*_Љ-џ(),\s\.]+)/g);
+
+    if (matches) {
+      return matches
+        .reduce((acc, idk) => {
+          let trimed = idk.trim();
+
+          if (trimed) {
+            if (trimed.includes("*") || trimed.includes("_")) {
+              return `${acc} && ${trimed}`;
+            } else {
+              return `${acc} ${trimed}`;
+            }
+          } else {
+            return acc;
+          }
+        }, "")
+        .split("&&")
+        .map((x) => x.trim())
+        .filter((x) => x);
+    } else {
+      return "";
+    }
+  });
 }
 
 function isNumeric(str) {
