@@ -1,4 +1,3 @@
-const fetch = require("node-fetch");
 const HTMLParser = require("node-html-parser");
 const express = require("express");
 const NodeCache = require("node-cache");
@@ -6,7 +5,6 @@ const convert = require("cyrillic-to-latin");
 const fs = require("fs");
 const puppeteer = require("puppeteer");
 const compression = require("compression");
-const { addListener } = require("process");
 
 const cache = new NodeCache();
 const app = express();
@@ -54,46 +52,6 @@ const modals = {
 
 app.get("/", function (req, res) {
   res.send("Hello World");
-});
-
-app.get("/old-from", function (req, res) {
-  let json = cache.get("old-from");
-  if (json == undefined) {
-    fetch("http://www.jgpnis.com/red-voznje/")
-      .then((x) => x.text())
-      .then((x) => HTMLParser.parse(x))
-      .then((x) => {
-        const nodes = [...x.querySelector("#myModal-88 .modal-body").childNodes].filter((x) => x.innerHTML);
-
-        var json = parseNodes(nodes);
-
-        cache.set("old-from", json, 3600);
-
-        return res.json(json);
-      });
-  } else {
-    return res.json(json);
-  }
-});
-
-app.get("/old-to", function (req, res) {
-  let json = cache.get("old-to");
-  if (json == undefined) {
-    fetch("http://www.jgpnis.com/red-voznje/")
-      .then((x) => x.text())
-      .then((x) => HTMLParser.parse(x))
-      .then((x) => {
-        const nodes = [...x.querySelector("#myModal-99 .modal-body").childNodes].filter((x) => x.innerHTML);
-
-        var json = parseNodes(nodes);
-
-        cache.set("old-to", json, 3600);
-
-        return res.json(json);
-      });
-  } else {
-    return res.json(json);
-  }
 });
 
 app.get("/to", async (req, res) => {
@@ -149,6 +107,10 @@ app.get("/from", async (req, res) => {
     cache.set("from", all, 3600);
   }
   return res.json(all);
+});
+
+app.get("/clear-cache", (req, res) => {
+  cache.del(["to", "from"]);
 });
 
 app.listen(3000, () => {
