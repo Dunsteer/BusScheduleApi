@@ -111,6 +111,7 @@ app.get("/from", async (req, res) => {
 
 app.get("/clear-cache", (req, res) => {
   cache.del(["to", "from"]);
+  res.send("Success");
 });
 
 app.listen(3000, () => {
