@@ -63,6 +63,8 @@ app.get("/to", async (req, res) => {
 
     const content = HTMLParser.parse(await page.content());
 
+    await browser.close();
+
     //fs.writeFileSync("./asd.html", await page.content());
 
     const json = Object.keys(modals).map((x, i) => {
@@ -90,6 +92,8 @@ app.get("/from", async (req, res) => {
     await page.goto("http://www.jgpnis.com/red-voznje/");
 
     const content = HTMLParser.parse(await page.content());
+
+    await browser.close();
 
     //fs.writeFileSync("./asd.html", await page.content());
 
