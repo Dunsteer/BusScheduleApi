@@ -46,6 +46,9 @@ const modals = {
   "myModal-hrwecr": 13,
   "myModal-hrtecrt": 34,
   "myModal-hrwecrt": 34,
+};
+
+const specialModals = {
   "myModal-hrtecrtw": 36,
   "myModal-hrwecrtw": 36,
 };
@@ -72,11 +75,16 @@ app.get("/to", async (req, res) => {
       return parseGenericLine(content, modals[x], x);
     });
 
+    const special = Object.keys(specialModals).map((x, i) => {
+      if (i % 2 != 0) return;
+      return parseGenericLine(content, specialModals[x], x, parseSpecialLineTime);
+    });
+
     const nodes = [...content.querySelector("#myModal-99 .modal-body").childNodes].filter((x) => x.innerHTML);
 
     const prigradski = parseNodes(nodes);
 
-    all = [...json, ...prigradski].filter((x) => x);
+    all = [...json, ...special, ...prigradski].filter((x) => x);
 
     cache.set("to", all, 3600);
   }
@@ -102,11 +110,16 @@ app.get("/from", async (req, res) => {
       return parseGenericLine(content, modals[x], x);
     });
 
+    const special = Object.keys(specialModals).map((x, i) => {
+      if (i % 2 != 1) return;
+      return parseGenericLine(content, specialModals[x], x, parseSpecialLineTime);
+    });
+
     const nodes = [...content.querySelector("#myModal-88 .modal-body").childNodes].filter((x) => x.innerHTML);
 
     const prigradski = parseNodes(nodes);
 
-    all = [...json, ...prigradski].filter((x) => x);
+    all = [...json, ...special, ...prigradski].filter((x) => x);
 
     cache.set("from", all, 3600);
   }
@@ -138,19 +151,16 @@ function parseNodes(nodes) {
       current = nodes[i + 1];
       if (current.childNodes[3].childNodes[0]) {
         obj.workDays = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-        //parseLast(obj.workDays);
       }
 
       current = nodes[i + 2];
       if (current.childNodes[3].childNodes[0]) {
         obj.saturday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-        //parseLast(obj.saturday);
       }
 
       current = nodes[i + 3];
       if (current.childNodes[3].childNodes[0]) {
         obj.sunday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-        //parseLast(obj.sunday);
       }
     }
   }
@@ -184,7 +194,7 @@ function parseArray(inputStr) {
  * @param {number} id
  * @param {string} parent
  */
-function parseGenericLine(content, id, parent) {
+function parseGenericLine(content, id, parent, parser) {
   content = content.querySelector(`#${parent}`);
   const header = content.querySelector(".modal-title");
 
@@ -202,7 +212,12 @@ function parseGenericLine(content, id, parent) {
 
   days.forEach((day, i) => {
     let parsedFootnotes = parseGenericLineFootnote(day);
-    let parsedTime = parseGenericLineTime(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
+    let parsedTime = null;
+    if (parser) {
+      parsedTime = parser(day);
+    } else {
+      parsedTime = parseGenericLineTime(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
+    }
 
     obj[mapping[i]] = parsedTime.concat(parsedFootnotes).flat();
   });
@@ -263,6 +278,10 @@ function parseGenericLineFootnote(day) {
       return "";
     }
   });
+}
+
+function parseSpecialLineTime(node) {
+  return stringToArrayOfTime(node.innerHTML);
 }
 
 function isNumeric(str) {
