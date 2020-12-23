@@ -215,11 +215,15 @@ function parseGenericLine(content, id, parent, parser) {
     let parsedTime = null;
     if (parser) {
       parsedTime = parser(day);
+      console.log(parsedFootnotes);
     } else {
       parsedTime = parseGenericLineTime(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
     }
 
-    obj[mapping[i]] = parsedTime.concat(parsedFootnotes).flat();
+    obj[mapping[i]] = parsedTime
+      .concat(parsedFootnotes)
+      .flat()
+      .filter((x) => x);
   });
 
   return obj;
@@ -254,7 +258,7 @@ function parseGenericLineFootnote(day) {
   const footnotes = Array.from([...day.querySelectorAll("p")]);
 
   return footnotes.map((x) => {
-    let matches = x.innerHTML.match(/([\*_Љ-џ(),\s\.]+)/g);
+    let matches = x.innerHTML.match(/([\*_]+[Љ-џ(),\s\.]+)/g);
 
     if (matches) {
       return matches
@@ -275,7 +279,7 @@ function parseGenericLineFootnote(day) {
         .map((x) => x.trim())
         .filter((x) => x);
     } else {
-      return "";
+      return;
     }
   });
 }
