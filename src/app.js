@@ -258,7 +258,7 @@ function parseGenericLineFootnote(day) {
   const footnotes = Array.from([...day.querySelectorAll("p")]);
 
   return footnotes.map((x) => {
-    let matches = x.innerHTML.match(/([\*_]+[Љ-џ(),\s\.]+)/g);
+    let matches = x.innerHTML.match(/([\*_Љ-џ(),\s\.]+)/g);
 
     if (matches) {
       return matches
@@ -277,7 +277,7 @@ function parseGenericLineFootnote(day) {
         }, "")
         .split("&&")
         .map((x) => x.trim())
-        .filter((x) => x);
+        .filter((x) => x.includes("*") || x.includes("_"));
     } else {
       return;
     }
