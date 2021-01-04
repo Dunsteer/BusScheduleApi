@@ -1,297 +1,245 @@
-const HTMLParser = require("node-html-parser");
-const express = require("express");
-const NodeCache = require("node-cache");
-const convert = require("cyrillic-to-latin");
-const fs = require("fs");
-const puppeteer = require("puppeteer");
-const compression = require("compression");
+const HTMLParser = require('node-html-parser');
+const express = require('express');
+const NodeCache = require('node-cache');
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+const compression = require('compression');
+const parsers = require('./util/parsers');
+const nodeCron = require('node-cron');
 
 const cache = new NodeCache();
 const app = express();
 
 app.use(compression());
 
-const mapping = {
-  0: "workDays",
-  1: "saturday",
-  2: "sunday",
-};
-
 const modals = {
-  "myModal-jje": 1,
-  "myModal-jjk": 1,
-  "myModal-dva": 2,
-  "myModal-dvaa": 2,
-  "myModal-jz": 3,
-  "myModal-jzz": 3,
-  "myModal-pp": 4,
-  "myModal-ppp": 4,
-  "myModal-kuj": 5,
-  "myModal-kje": 5,
-  "myModal-kok": 6,
-  "myModal-juu": 6,
-  "myModal-bgbge": 7,
-  "myModal-bbfe": 7,
-  "myModal-hrt": 8,
-  "myModal-hrw": 8,
-  "myModal-hrte": 9,
-  "myModal-hrwe": 9,
-  "myModal-hrtel": 10,
-  "myModal-hrwel": 10,
-  "myModal-hrtelme": 11,
-  "myModal-hrwelme": 11,
-  "myModal-hrtec": 12,
-  "myModal-hrwec": 12,
-  "myModal-hrtecr": 13,
-  "myModal-hrwecr": 13,
-  "myModal-hrtecrt": 34,
-  "myModal-hrwecrt": 34,
+  'myModal-jje': 1,
+  'myModal-jjk': 1,
+  'myModal-dva': 2,
+  'myModal-dvaa': 2,
+  'myModal-jz': 3,
+  'myModal-jzz': 3,
+  'myModal-pp': 4,
+  'myModal-ppp': 4,
+  'myModal-kuj': 5,
+  'myModal-kje': 5,
+  'myModal-kok': 6,
+  'myModal-juu': 6,
+  'myModal-bgbge': 7,
+  'myModal-bbfe': 7,
+  'myModal-hrt': 8,
+  'myModal-hrw': 8,
+  'myModal-hrte': 9,
+  'myModal-hrwe': 9,
+  'myModal-hrtel': 10,
+  'myModal-hrwel': 10,
+  'myModal-hrtelme': 11,
+  'myModal-hrwelme': 11,
+  'myModal-hrtec': 12,
+  'myModal-hrwec': 12,
+  'myModal-hrtecr': 13,
+  'myModal-hrwecr': 13,
+  'myModal-hrtecrt': 34,
+  'myModal-hrwecrt': 34,
 };
 
 const specialModals = {
-  "myModal-hrtecrtw": 36,
-  "myModal-hrwecrtw": 36,
+  'myModal-hrtecrtw': 36,
+  'myModal-hrwecrtw': 36,
 };
 
-app.get("/", function (req, res) {
-  res.send("Hello World");
+nodeCron.schedule('0 * 12 * * *', async () => {
+  await load();
 });
 
-app.get("/to", async (req, res) => {
-  let all = cache.get("to");
+app.get('/', function (req, res) {
+  res.send('Hello World');
+});
+
+app.get('/to', async (req, res) => {
+  let all = cache.get('to');
   if (!all) {
-    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
-    const page = await browser.newPage();
-    await page.goto("http://www.jgpnis.com/red-voznje/");
+    const content = getHtmlFromUrl('http://www.jgpnis.com/red-voznje/');
 
-    const content = HTMLParser.parse(await page.content());
+    const all = parseTo(content);
 
-    await browser.close();
-
-    //fs.writeFileSync("./asd.html", await page.content());
-
-    const json = Object.keys(modals).map((x, i) => {
-      if (i % 2 != 0) return;
-      return parseGenericLine(content, modals[x], x);
-    });
-
-    const special = Object.keys(specialModals).map((x, i) => {
-      if (i % 2 != 0) return;
-      return parseGenericLine(content, specialModals[x], x, parseSpecialLineTime);
-    });
-
-    const nodes = [...content.querySelector("#myModal-99 .modal-body").childNodes].filter((x) => x.innerHTML);
-
-    const prigradski = parseNodes(nodes);
-
-    all = [...json, ...special, ...prigradski].filter((x) => x);
-
-    cache.set("to", all, 3600);
+    cache.set('to', all, 60 * 60 * 13);
   }
 
   return res.json(all);
 });
 
-app.get("/from", async (req, res) => {
-  let all = cache.get("from");
+app.get('/from', async (req, res) => {
+  let all = cache.get('from');
   if (!all) {
-    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
-    const page = await browser.newPage();
-    await page.goto("http://www.jgpnis.com/red-voznje/");
-
-    const content = HTMLParser.parse(await page.content());
-
-    await browser.close();
+    const content = getHtmlFromUrl('http://www.jgpnis.com/red-voznje/');
 
     //fs.writeFileSync("./asd.html", await page.content());
 
-    const json = Object.keys(modals).map((x, i) => {
-      if (i % 2 != 1) return;
-      return parseGenericLine(content, modals[x], x);
-    });
+    const all = parseFrom(content);
 
-    const special = Object.keys(specialModals).map((x, i) => {
-      if (i % 2 != 1) return;
-      return parseGenericLine(content, specialModals[x], x, parseSpecialLineTime);
-    });
-
-    const nodes = [...content.querySelector("#myModal-88 .modal-body").childNodes].filter((x) => x.innerHTML);
-
-    const prigradski = parseNodes(nodes);
-
-    all = [...json, ...special, ...prigradski].filter((x) => x);
-
-    cache.set("from", all, 3600);
+    cache.set('from', all, 3600);
   }
+
   return res.json(all);
 });
 
-app.get("/clear-cache", (req, res) => {
-  cache.del(["to", "from"]);
-  res.send("Success");
+app.get('/clear-cache', (req, res) => {
+  cache.del(['to', 'from']);
+  res.send('Success');
 });
 
-app.listen(3000, () => {
+app.listen(3000, async () => {
   console.log(`Server started on port 3000.`);
+
+  await load();
 });
 
-function parseNodes(nodes) {
-  const res = [];
+async function load() {
+  const content = await getHtmlFromUrl('http://www.jgpnis.com/red-voznje/');
 
-  for (let i = 0; i < nodes.length; i += 4) {
-    let current = nodes[i];
-    if (current.childNodes[1].innerHTML) {
-      const obj = {};
-      res.push(obj);
+  const allTo = parseTo(content);
+  const oldTo = cache.get('to');
 
-      obj.id = convert(current.childNodes[1].innerHTML.trim());
-      obj.name = convert(current.childNodes[2].rawText.trim().replace(",", ""));
+  const res1 = objectTester(oldTo, allTo);
 
-      const regex = /,|\./;
-      current = nodes[i + 1];
-      if (current.childNodes[3].childNodes[0]) {
-        obj.workDays = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-      }
+  cache.set('to', allTo, 60 * 60 * 13);
 
-      current = nodes[i + 2];
-      if (current.childNodes[3].childNodes[0]) {
-        obj.saturday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-      }
+  const allFrom = parseFrom(content);
+  const oldFrom = cache.get('from');
 
-      current = nodes[i + 3];
-      if (current.childNodes[3].childNodes[0]) {
-        obj.sunday = parseArray(current.childNodes[3].childNodes[0].innerHTML);
-      }
-    }
-  }
+  const res2 = objectTester(oldFrom, allFrom);
 
-  return res;
-}
+  cache.set('from', allFrom, 60 * 60 * 13);
 
-/**
- * @param {string} inputStr
- */
-function stringToArrayOfTime(inputStr) {
-  const timeReg = /([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\*)?/g;
-
-  const res = inputStr.match(timeReg);
-
-  return res || [];
-}
-
-function extractFootnote(inputStr) {
-  const res = inputStr.match(/(\*.*$)/g);
-  return res || [];
-}
-
-function parseArray(inputStr) {
-  return [...stringToArrayOfTime(inputStr), ...extractFootnote(convert(inputStr))].flat();
-}
-
-/**
- *
- * @param {HTMLElement} content
- * @param {number} id
- * @param {string} parent
- */
-function parseGenericLine(content, id, parent, parser) {
-  content = content.querySelector(`#${parent}`);
-  const header = content.querySelector(".modal-title");
-
-  const names = header.querySelectorAll("font");
-
-  const name = `${names[0].innerHTML} - ${names[1].innerHTML}`;
-  //([\*|_]+[Љ-џ\s(),]+|([Љ-џ]+[\s]+))
-
-  const obj = {
-    id,
-    name,
-  };
-
-  const days = Array.from([...content.querySelectorAll(".tab-pane")]);
-
-  days.forEach((day, i) => {
-    let parsedFootnotes = parseGenericLineFootnote(day);
-    let parsedTime = null;
-    if (parser) {
-      parsedTime = parser(day);
-      console.log(parsedFootnotes);
-    } else {
-      parsedTime = parseGenericLineTime(Array.from([...day.querySelectorAll("tr")].filter((x) => x.innerHTML)));
-    }
-
-    obj[mapping[i]] = parsedTime
-      .concat(parsedFootnotes)
-      .flat()
-      .filter((x) => x);
-  });
-
-  return obj;
-}
-
-/**
- *
- * @param {HTMLElement[]} node
- */
-function parseGenericLineTime(node) {
-  return node
-    .map((x) => {
-      const firstHalf = x.childNodes[1].innerHTML.trim();
-
-      if (isNumeric(firstHalf)) {
-        const extractedNumbers = x.childNodes[3].innerHTML.match(/[0-9*,]+/g);
-        if (extractedNumbers) {
-          const nodes = extractedNumbers.join("").match(/([0-9]+)(\*)*/g);
-
-          const arr = Array.from(nodes);
-          return arr.map((y) => `${firstHalf}:${y}`);
-        } else {
-          return [];
-        }
-      }
-    })
-    .flat()
-    .filter((x) => x);
-}
-
-function parseGenericLineFootnote(day) {
-  const footnotes = Array.from([...day.querySelectorAll("p")]);
-
-  return footnotes.map((x) => {
-    let matches = x.innerHTML.match(/([\*_Љ-џ(),\s\.]+)/g);
-
-    if (matches) {
-      return matches
-        .reduce((acc, idk) => {
-          let trimed = idk.trim();
-
-          if (trimed) {
-            if (trimed.includes("*") || trimed.includes("_")) {
-              return `${acc} && ${trimed}`;
-            } else {
-              return `${acc} ${trimed}`;
-            }
-          } else {
-            return acc;
-          }
-        }, "")
-        .split("&&")
-        .map((x) => x.trim())
-        .filter((x) => x.includes("*") || x.includes("_"));
-    } else {
-      return;
-    }
-  });
-}
-
-function parseSpecialLineTime(node) {
-  return stringToArrayOfTime(node.innerHTML);
-}
-
-function isNumeric(str) {
-  return /^\d+$/.test(str);
+  console.log('Load successfull.');
 }
 
 function logHTML(html) {
   console.log(html.map((x) => x.tagName));
+}
+
+function parseTo(content) {
+  const json = Object.keys(modals).map((x, i) => {
+    if (i % 2 != 0) return;
+    return parsers.parseGenericLine(content, modals[x], x);
+  });
+
+  const special = Object.keys(specialModals).map((x, i) => {
+    if (i % 2 != 0) return;
+    return parsers.parseGenericLine(content, specialModals[x], x, parsers.parseSpecialLineTime);
+  });
+
+  const nodes = [...content.querySelector('#myModal-99 .modal-body').childNodes].filter(
+    (x) => x.innerHTML
+  );
+
+  const prigradski = parsers.parseNodes(nodes);
+
+  all = [...json, ...special, ...prigradski].filter((x) => x);
+
+  return all;
+}
+
+function parseFrom(content) {
+  const json = Object.keys(modals).map((x, i) => {
+    if (i % 2 != 1) return;
+    return parsers.parseGenericLine(content, modals[x], x);
+  });
+
+  const special = Object.keys(specialModals).map((x, i) => {
+    if (i % 2 != 1) return;
+    return parsers.parseGenericLine(content, specialModals[x], x, parsers.parseSpecialLineTime);
+  });
+
+  const nodes = [...content.querySelector('#myModal-88 .modal-body').childNodes].filter(
+    (x) => x.innerHTML
+  );
+
+  const prigradski = parsers.parseNodes(nodes);
+
+  all = [...json, ...special, ...prigradski].filter((x) => x);
+
+  return all;
+}
+
+async function getHtmlFromUrl(url) {
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.goto(url);
+
+  const content = HTMLParser.parse(await page.content());
+
+  await browser.close();
+  return content;
+}
+
+function compare(comp1, comp2) {}
+
+// Helper to return a value's internal object [[Class]]
+// That this returns [object Type] even for primitives
+function getClass(obj) {
+  return Object.prototype.toString.call(obj);
+}
+
+/*
+ ** @param a, b        - values (Object, RegExp, Date, etc.)
+ ** @returns {boolean} - true if a and b are the object or same primitive value or
+ **                      have the same properties with the same values
+ */
+function objectTester(a, b) {
+  // If a and b reference the same value, return true
+  if (a === b) return true;
+
+  // If a and b aren't the same type, return false
+  if (typeof a != typeof b) return false;
+
+  // Already know types are the same, so if type is number
+  // and both NaN, return true
+  if (typeof a == 'number' && isNaN(a) && isNaN(b)) return true;
+
+  // Get internal [[Class]]
+  var aClass = getClass(a);
+  var bClass = getClass(b);
+
+  // Return false if not same class
+  if (aClass != bClass) return false;
+
+  // If they're Boolean, String or Number objects, check values
+  if (aClass == '[object Boolean]' || aClass == '[object String]' || aClass == '[object Number]') {
+    return a.valueOf() == b.valueOf();
+  }
+
+  // If they're RegExps, Dates or Error objects, check stringified values
+  if (aClass == '[object RegExp]' || aClass == '[object Date]' || aClass == '[object Error]') {
+    return a.toString() == b.toString();
+  }
+
+  // Otherwise they're Objects, Functions or Arrays or some kind of host object
+  if (typeof a == 'object' || typeof a == 'function') {
+    // For functions, check stringigied values are the same
+    // Almost certainly false if a and b aren't trivial
+    // and are different functions
+    if (aClass == '[object Function]' && a.toString() != b.toString()) return false;
+
+    var aKeys = Object.keys(a);
+    var bKeys = Object.keys(b);
+
+    // If they don't have the same number of keys, return false
+    if (aKeys.length != bKeys.length) return false;
+
+    // Check they have the same keys
+    if (
+      !aKeys.every(function (key) {
+        return b.hasOwnProperty(key);
+      })
+    )
+      return false;
+
+    // Check key values - uses ES5 Object.keys
+    return aKeys.every(function (key) {
+      return objectTester(a[key], b[key]);
+    });
+  }
+  return false;
 }
