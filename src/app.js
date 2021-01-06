@@ -48,7 +48,7 @@ const specialModals = {
   'myModal-hrwecrtw': 36,
 };
 
-nodeCron.schedule('0 * 12 * * *', async () => {
+nodeCron.schedule('0 */12 * * *', async () => {
   await load();
 });
 
@@ -59,11 +59,9 @@ app.get('/', function (req, res) {
 app.get('/to', async (req, res) => {
   let all = cache.get('to');
   if (!all) {
-    const content = getHtmlFromUrl('http://www.jgpnis.com/red-voznje/');
+    await load();
 
-    const all = parseTo(content);
-
-    cache.set('to', all, 60 * 60 * 13);
+    all = cache.get('to');
   }
 
   return res.json(all);
@@ -72,13 +70,9 @@ app.get('/to', async (req, res) => {
 app.get('/from', async (req, res) => {
   let all = cache.get('from');
   if (!all) {
-    const content = getHtmlFromUrl('http://www.jgpnis.com/red-voznje/');
+    await load();
 
-    //fs.writeFileSync("./asd.html", await page.content());
-
-    const all = parseFrom(content);
-
-    cache.set('from', all, 3600);
+    all = cache.get('from');
   }
 
   return res.json(all);
