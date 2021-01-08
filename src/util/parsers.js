@@ -1,5 +1,6 @@
 const consts = require('../config/consts');
 const convert = require('cyrillic-to-latin');
+const loggers = require('./loggers');
 
 function parseArray(inputStr) {
   return [...stringToArrayOfTime(inputStr), ...extractFootnote(convert(inputStr))].flat();
@@ -75,17 +76,19 @@ function parseGenericLine(content, id, parent, parser) {
 function parseGenericLineTime(node) {
   return node
     .map((x) => {
-      const firstHalf = x.childNodes[1].innerHTML.trim();
+      const firstHalf = x.childNodes[1].innerHTML.trim().match(/[0-9*,]+/g);
 
-      if (isNumeric(firstHalf)) {
-        const extractedNumbers = x.childNodes[3].innerHTML.match(/[0-9*,]+/g);
-        if (extractedNumbers) {
-          const nodes = extractedNumbers.join('').match(/([0-9]+)(\*)*/g);
+      if (firstHalf) {
+        if (x.childNodes[3]) {
+          const extractedNumbers = x.childNodes[3].innerHTML.match(/[0-9*,]+/g);
+          if (extractedNumbers) {
+            const nodes = extractedNumbers.join('').match(/([0-9]+)(\*)*/g);
 
-          const arr = Array.from(nodes);
-          return arr.map((y) => `${firstHalf}:${y}`);
-        } else {
-          return [];
+            const arr = Array.from(nodes);
+            return arr.map((y) => `${firstHalf}:${y}`);
+          } else {
+            return [];
+          }
         }
       }
     })

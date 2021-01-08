@@ -109,10 +109,6 @@ async function load() {
   console.log('Load successfull.');
 }
 
-function logHTML(html) {
-  console.log(html.map((x) => x.tagName));
-}
-
 function parseTo(content) {
   const json = Object.keys(modals).map((x, i) => {
     if (i % 2 != 0) return;
