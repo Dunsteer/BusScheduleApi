@@ -10,7 +10,7 @@ function parseArray(inputStr) {
  * @param {string} inputStr
  */
 function stringToArrayOfTime(inputStr) {
-  const timeReg = /([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\*)?/g;
+  const timeReg = /([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\*)*/g;
 
   const res = inputStr.match(timeReg);
 
@@ -95,7 +95,13 @@ function parseGenericLineTime(node) {
             const nodes = intermediate.match(/(_)*([0-9]+)(\*)*/g);
 
             const arr = Array.from(nodes);
-            return arr.map((y) => `${firstHalf}:${y}`);
+            return arr.map((y) => {
+              if (y.startsWith('_')) {
+                return `_${firstHalf}:${y.substring(1)}`;
+              } else {
+                return `${firstHalf}:${y}`;
+              }
+            });
           } else {
             return [];
           }
