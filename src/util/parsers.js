@@ -80,9 +80,19 @@ function parseGenericLineTime(node) {
 
       if (firstHalf) {
         if (x.childNodes[3]) {
-          const extractedNumbers = x.childNodes[3].innerHTML.match(/[0-9*,]+/g);
-          if (extractedNumbers) {
-            const nodes = extractedNumbers.join('').match(/([0-9]+)(\*)*/g);
+          const extractedValues = x.childNodes[3].innerHTML.match(/[0-9*,]+|(underline)/g);
+
+          if (extractedValues) {
+            let intermediate = '';
+            for (let i = 0; i < extractedValues.length; i++) {
+              if (extractedValues[i] == 'underline') {
+                extractedValues[i + 1] = `_${extractedValues[i + 1]}`;
+              } else {
+                intermediate += extractedValues[i];
+              }
+            }
+
+            const nodes = intermediate.match(/(_)*([0-9]+)(\*)*/g);
 
             const arr = Array.from(nodes);
             return arr.map((y) => `${firstHalf}:${y}`);
